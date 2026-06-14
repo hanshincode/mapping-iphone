@@ -57,7 +57,7 @@ bool oldDeviceConnected = false;
 // Navigation State Variables
 int currentTurnType = 0;       // 0: straight, 1: left, 2: right, 3: slight left, 4: slight right, 5: u-turn, 6: roundabout, 7: arrived
 String currentDistance = "--";
-String currentStreet = "Cho ket noi GMap";
+String currentStreet = "Cho ket noi";
 bool needsRedraw = true;
 
 // Custom BLE Server Callbacks
@@ -97,16 +97,16 @@ class MyCallbacks: public BLECharacteristicCallbacks {
 
 void drawConnectionStatus() {
   uint16_t color = deviceConnected ? RGB565(0, 255, 255) : RGB565(255, 0, 0); // Cyan or Red
-  tft.fillCircle(120, 18, 5, color);
+  tft.fillCircle(120, 14, 5, color);
   
   tft.setTextSize(1);
-  tft.setTextColor(RGB565(120, 120, 120));
+  tft.setTextColor(RGB565(180, 180, 180), BLACK);
   if (deviceConnected) {
-    tft.setCursor(102, 28);
-    tft.print("CONNECTED");
+    tft.setCursor(99, 25);
+    tft.print("BLE OK");
   } else {
-    tft.setCursor(105, 28);
-    tft.print("SCANNING");
+    tft.setCursor(96, 25);
+    tft.print("CHO BLE");
   }
 }
 
@@ -192,6 +192,8 @@ void drawNavigationArrow(int type) {
 }
 
 void drawCenteredString(String text, int y, int size, uint16_t color) {
+  text.trim();
+
   // Calculate maximum safe width at this Y coordinate on a 240-diameter circular screen
   int dy = abs(y + (size * 8) / 2 - 120);
   int maxWidth = 220;
@@ -205,34 +207,32 @@ void drawCenteredString(String text, int y, int size, uint16_t color) {
   int charWidth = 6 * currentSize;
   int textWidth = text.length() * charWidth;
   
-  if (textWidth > maxWidth && currentSize > 1) {
+  while (textWidth > maxWidth && currentSize > 1) {
     currentSize--;
     charWidth = 6 * currentSize;
     textWidth = text.length() * charWidth;
   }
   
-  // If still too wide, truncate the text and append "..."
+  // If still too wide, truncate the text and append ".."
   if (textWidth > maxWidth) {
-    while (text.length() > 3 && textWidth > maxWidth) {
+    while (text.length() > 2 && textWidth > maxWidth) {
       text = text.substring(0, text.length() - 1);
-      textWidth = (text.length() + 3) * charWidth;
+      textWidth = (text.length() + 2) * charWidth;
     }
-    text += "...";
+    text += "..";
     textWidth = text.length() * charWidth;
   }
   
   int x = 120 - (textWidth / 2);
   
-  // Clear only the drawing area of this line to prevent screen-wide flickering
-  tft.fillRect(120 - maxWidth/2 - 4, y, maxWidth + 8, currentSize * 8, BLACK);
-  
   tft.setTextSize(currentSize);
-  tft.setTextColor(color);
+  tft.setTextColor(color, BLACK);
   tft.setCursor(x, y);
   tft.print(text);
 }
 
 void updateDisplay() {
+  tft.fillScreen(BLACK);
   drawConnectionStatus();
   tft.drawCircle(120, 120, 117, RGB565(30, 50, 80));
   
@@ -250,15 +250,15 @@ void updateDisplay() {
   }
   
   if (deviceConnected) {
-    drawCenteredString(currentDistance, 148, 3, WHITE);
+    drawCenteredString(currentDistance, 140, 4, WHITE);
   } else {
-    drawCenteredString("--", 148, 3, RGB565(100, 100, 100));
+    drawCenteredString("MO APP", 145, 3, WHITE);
   }
   
   if (deviceConnected) {
-    drawCenteredString(currentStreet, 185, 2, RGB565(0, 230, 180));
+    drawCenteredString(currentStreet, 184, 2, RGB565(0, 230, 180));
   } else {
-    drawCenteredString("Mo app dien thoai", 185, 2, RGB565(150, 150, 150));
+    drawCenteredString("KET NOI BLE", 178, 2, RGB565(150, 150, 150));
   }
 }
 
@@ -276,6 +276,7 @@ void setup() {
   SPI.begin(TFT_SCK, -1 /* MISO */, TFT_MOSI, TFT_CS);
   
   tft.setRotation(0);
+  tft.setTextWrap(false);
   tft.fillScreen(BLACK);
   
   // Welcome boot screen displaying brand logo

@@ -1,5 +1,7 @@
 import SwiftUI
 import CoreBluetooth
+import CoreLocation
+import UIKit
 
 struct ContentView: View {
     @StateObject private var bleManager = BLEManager()
@@ -232,9 +234,7 @@ struct ContentView: View {
             }
         }
         .preferredColorScheme(.dark)
-        }
     }
-}
     
     private func loadAPIKey() {
         googleAPIKey = UserDefaults.standard.string(forKey: "google_api_key") ?? ""

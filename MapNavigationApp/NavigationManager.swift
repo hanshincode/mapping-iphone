@@ -363,14 +363,26 @@ class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             distStr = String(format: "%.0fm", distanceToNextTurn)
         }
         
-        let strippedStreet = nextStreet.strippingDiacritics
+        let prefix = "\(turnCode);\(distStr);"
+        let maxStreetLength = max(1, 20 - prefix.count)
+        let strippedStreet = bleSafeText(nextStreet, maxLength: maxStreetLength)
         
-        let message = "\(turnCode);\(distStr);\(strippedStreet)"
+        let message = "\(prefix)\(strippedStreet.isEmpty ? "-" : strippedStreet)"
         bleManager?.sendData(message)
     }
     
     private func sendArrivedUpdate() {
-        bleManager?.sendData("7;Da den;\(destinationName.strippingDiacritics)")
+        let prefix = "7;Da den;"
+        let place = bleSafeText(destinationName, maxLength: max(1, 20 - prefix.count))
+        bleManager?.sendData("\(prefix)\(place.isEmpty ? "-" : place)")
+    }
+
+    private func bleSafeText(_ text: String, maxLength: Int) -> String {
+        let ascii = text.strippingDiacritics
+            .replacingOccurrences(of: ";", with: " ")
+            .replacingOccurrences(of: "[^A-Za-z0-9 .,/\\-]", with: "", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return String(ascii.prefix(maxLength))
     }
     
     private func recalculateRoute() {
