@@ -12,8 +12,8 @@ workflows:
     triggering:
       events:
         - push
-      branches:
-        - main
+      branch_patterns:
+        - pattern: main
     scripts:
       - name: Generate Xcode Project
         script: |
