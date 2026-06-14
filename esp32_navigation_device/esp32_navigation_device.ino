@@ -21,6 +21,7 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
+#include "logo.h"
 
 // Screen Pin Definitions
 #define TFT_SCK  4
@@ -277,10 +278,11 @@ void setup() {
   tft.setRotation(0);
   tft.fillScreen(BLACK);
   
-  // Welcome boot screen
-  drawCenteredString("GMap Navi Device", 80, 2, WHITE);
-  drawCenteredString("Khoi dong BLE...", 120, 2, RGB565(0, 180, 255));
-  delay(1500);
+  // Welcome boot screen displaying brand logo
+  int logoX = (240 - brand_logo_width) / 2;
+  int logoY = (240 - brand_logo_height) / 2;
+  tft.drawRGBBitmap(logoX, logoY, brand_logo, brand_logo_width, brand_logo_height);
+  delay(2000);
   tft.fillScreen(BLACK);
   
   // Initialize BLE
