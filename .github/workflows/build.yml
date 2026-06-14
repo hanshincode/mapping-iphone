@@ -1,0 +1,51 @@
+name: Build Unsigned iOS IPA
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Unsigned IPA
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Generate Xcode Project and Source Files
+        run: |
+          python3 generate_project.py
+
+      - name: Build Xcode Archive (Unsigned)
+        run: |
+          xcodebuild archive \
+            -project MapNavigationApp.xcodeproj \
+            -scheme MapNavigationApp \
+            -configuration Release \
+            -archivePath MapNavigationApp.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            PROVISIONING_PROFILE_REQUIRED=NO
+
+      - name: Package into IPA
+        run: |
+          mkdir -p Payload
+          cp -r MapNavigationApp.xcarchive/Products/Applications/MapNavigationApp.app Payload/
+          zip -r MapNavigationApp.ipa Payload
+          echo "IPA successfully created!"
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MapNavigationApp-Unsigned-IPA
+          path: MapNavigationApp.ipa
+          if-no-files-found: error
+          retention-days: 7
