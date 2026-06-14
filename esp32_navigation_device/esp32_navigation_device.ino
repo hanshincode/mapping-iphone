@@ -40,7 +40,8 @@
 #endif
 
 // GFX Initialization
-Arduino_DataBus *bus = new Arduino_ESP32SPI(TFT_DC, TFT_CS, TFT_SCK, TFT_MOSI, TFT_MISO);
+// We use 2 (SPI2_HOST / HSPI) for user SPI, and set frequency to 20MHz (20000000) to prevent signal distortion and hangs
+Arduino_DataBus *bus = new Arduino_ESP32SPI(TFT_DC, TFT_CS, TFT_SCK, TFT_MOSI, TFT_MISO, 2 /* SPI2_HOST */, 20000000 /* 20MHz clock */);
 Arduino_GFX *gfx = new Arduino_GC9A01(bus, TFT_RST, 0 /* rotation */, true /* IPS */);
 
 // BLE Definitions
