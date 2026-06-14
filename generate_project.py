@@ -904,6 +904,7 @@ struct ContentView: View {
                 )
             }
         }
+        .preferredColorScheme(.dark)
     }
     
     private func loadAPIKey() {

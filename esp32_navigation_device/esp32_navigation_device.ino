@@ -191,12 +191,41 @@ void drawNavigationArrow(int type) {
 }
 
 void drawCenteredString(String text, int y, int size, uint16_t color) {
-  int charWidth = 6 * size;
-  int x = 120 - (text.length() * charWidth / 2);
+  // Calculate maximum safe width at this Y coordinate on a 240-diameter circular screen
+  int dy = abs(y + (size * 8) / 2 - 120);
+  int maxWidth = 220;
+  if (dy < 120) {
+    maxWidth = 2 * sqrt(120 * 120 - dy * dy) - 16; // 8px margin on each side
+  }
+  if (maxWidth < 20) maxWidth = 20;
+
+  // Dynamically reduce font size if the text is too wide for this line
+  int currentSize = size;
+  int charWidth = 6 * currentSize;
+  int textWidth = text.length() * charWidth;
   
-  tft.fillRect(10, y, 220, size * 8, BLACK);
+  if (textWidth > maxWidth && currentSize > 1) {
+    currentSize--;
+    charWidth = 6 * currentSize;
+    textWidth = text.length() * charWidth;
+  }
   
-  tft.setTextSize(size);
+  // If still too wide, truncate the text and append "..."
+  if (textWidth > maxWidth) {
+    while (text.length() > 3 && textWidth > maxWidth) {
+      text = text.substring(0, text.length() - 1);
+      textWidth = (text.length() + 3) * charWidth;
+    }
+    text += "...";
+    textWidth = text.length() * charWidth;
+  }
+  
+  int x = 120 - (textWidth / 2);
+  
+  // Clear only the drawing area of this line to prevent screen-wide flickering
+  tft.fillRect(120 - maxWidth/2 - 4, y, maxWidth + 8, currentSize * 8, BLACK);
+  
+  tft.setTextSize(currentSize);
   tft.setTextColor(color);
   tft.setCursor(x, y);
   tft.print(text);
@@ -235,11 +264,16 @@ void updateDisplay() {
 void setup() {
   Serial.begin(115200);
   
-  // Initialize standard hardware SPI with our custom pins first
+  // Initialize standard hardware SPI with our custom pins
   SPI.begin(TFT_SCK, -1 /* MISO */, TFT_MOSI, TFT_CS);
   
-  // Initialize Adafruit GC9A01A display
-  tft.begin();
+  // Initialize Adafruit GC9A01A display with 8MHz SPI speed for signal stability
+  tft.begin(8000000);
+  tft.setSPISpeed(8000000);
+  
+  // Re-establish pin routing since tft.begin() internally overrides them to defaults
+  SPI.begin(TFT_SCK, -1 /* MISO */, TFT_MOSI, TFT_CS);
+  
   tft.setRotation(0);
   tft.fillScreen(BLACK);
   
