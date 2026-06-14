@@ -28,6 +28,17 @@
 #define TFT_DC   2
 #define TFT_RST  3
 
+// Color Helpers
+#ifndef BLACK
+#define BLACK 0x0000
+#endif
+#ifndef WHITE
+#define WHITE 0xFFFF
+#endif
+#ifndef RGB565
+#define RGB565(r,g,b) ((((r) & 0xF8) << 8) | (((g) & 0xFC) << 3) | (((b) & 0xF8) >> 3))
+#endif
+
 // GFX Initialization
 Arduino_DataBus *bus = new Arduino_ESP32SPI(TFT_DC, TFT_CS, TFT_SCK, TFT_MOSI, TFT_MISO);
 Arduino_GFX *gfx = new Arduino_GC9A01(bus, TFT_RST, 0 /* rotation */, true /* IPS */);
@@ -63,9 +74,9 @@ class MyServerCallbacks: public BLEServerCallbacks {
 // BLE Characteristic Callback to receive navigation messages
 class MyCallbacks: public BLECharacteristicCallbacks {
     void onWrite(BLECharacteristic *pCharacteristic) {
-      std::string rxValue = pCharacteristic->getValue();
+      String rxValue = pCharacteristic->getValue();
       if (rxValue.length() > 0) {
-        String msg = String(rxValue.c_str());
+        String msg = rxValue;
         Serial.println("Received: " + msg);
         
         // Parse message format: "turnType;distanceString;streetName"
@@ -282,7 +293,7 @@ void setup() {
                                          BLECharacteristic::PROPERTY_READ |
                                          BLECharacteristic::PROPERTY_WRITE |
                                          BLECharacteristic::PROPERTY_NOTIFY |
-                                         BLECharacteristic::PROPERTY_WRITE_NO_RESPONSE
+                                         BLECharacteristic::PROPERTY_WRITE_NR
                                        );
                                        
   pCharacteristic->setCallbacks(new MyCallbacks());

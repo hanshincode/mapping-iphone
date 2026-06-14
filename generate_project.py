@@ -3,7 +3,8 @@ import os
 def create_directory_structure():
     directories = [
         "MapNavigationApp",
-        "MapNavigationApp.xcodeproj"
+        "MapNavigationApp.xcodeproj",
+        "MapNavigationApp.xcodeproj/xcshareddata/xcschemes"
     ]
     for d in directories:
         os.makedirs(d, exist_ok=True)
@@ -1466,6 +1467,90 @@ def write_xcodeproj():
         f.write(content)
     print("Wrote project.pbxproj")
 
+def write_scheme():
+    content = """<?xml version="1.0" encoding="UTF-8"?>
+<Scheme
+   LastUpgradeVersion = "1400"
+   version = "1.3">
+   <BuildAction
+      parallelizeBuildables = "YES"
+      buildImplicitDependencies = "YES">
+      <BuildActionEntries>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "4A4A00501A1A1A1A00000010"
+               BuildableName = "MapNavigationApp.app"
+               BlueprintName = "MapNavigationApp"
+               ReferencedContainer = "container:MapNavigationApp.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+      </BuildActionEntries>
+   </BuildAction>
+   <TestAction
+      buildConfiguration = "Debug"
+      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
+      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      shouldUseLaunchSchemeArgsEnv = "YES">
+      <Testables>
+      </Testables>
+   </TestAction>
+   <LaunchAction
+      buildConfiguration = "Debug"
+      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
+      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      launchStyle = "0"
+      useLaunchSchemeArgsEnv = "YES"
+      ignoresPersistentStateOnLaunch = "NO"
+      debugDocumentVersioning = "YES"
+      debugServiceExtension = "internal"
+      allowLocationSimulation = "YES">
+      <BuildableProductRunnable
+         runnableDebuggingMode = "0">
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "4A4A00501A1A1A1A00000010"
+            BuildableName = "MapNavigationApp.app"
+            BlueprintName = "MapNavigationApp"
+            ReferencedContainer = "container:MapNavigationApp.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
+   </LaunchAction>
+   <ProfileAction
+      buildConfiguration = "Release"
+      shouldUseLaunchSchemeArgsEnv = "YES"
+      savedToolIdentifier = ""
+      useLaunchSchemeArgsEnv = "YES"
+      debugDocumentVersioning = "YES">
+      <BuildableProductRunnable
+         runnableDebuggingMode = "0">
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "4A4A00501A1A1A1A00000010"
+            BuildableName = "MapNavigationApp.app"
+            BlueprintName = "MapNavigationApp"
+            ReferencedContainer = "container:MapNavigationApp.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
+   </ProfileAction>
+   <AnalyzeAction
+      buildConfiguration = "Debug">
+   </AnalyzeAction>
+   <ArchiveAction
+      buildConfiguration = "Release"
+      revealArchiveInOrganizer = "YES">
+   </ArchiveAction>
+</Scheme>
+"""
+    with open("MapNavigationApp.xcodeproj/xcshareddata/xcschemes/MapNavigationApp.xcscheme", "w", encoding="utf-8") as f:
+        f.write(content)
+    print("Wrote MapNavigationApp.xcscheme")
+
 if __name__ == "__main__":
     create_directory_structure()
     write_app_swift()
@@ -1474,4 +1559,5 @@ if __name__ == "__main__":
     write_content_view()
     write_info_plist()
     write_xcodeproj()
+    write_scheme()
     print("All files generated successfully!")
