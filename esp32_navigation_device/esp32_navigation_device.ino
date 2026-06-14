@@ -6,8 +6,8 @@
   GC9A01 Screen <---> ESP32-C3 SuperMini
   VCC           ---> 3.3V
   GND           ---> GND
-  SCL (SCLK)    ---> GPIO 4 (Hardware SCK)
-  SDA (MOSI)    ---> GPIO 6 (Hardware MOSI)
+  SCL (SCLK)    ---> GPIO 4
+  SDA (MOSI)    ---> GPIO 6
   DC            ---> GPIO 2
   CS            ---> GPIO 7
   RST           ---> GPIO 3
@@ -40,8 +40,10 @@
 #endif
 
 // GFX Initialization
-// We use 2 (SPI2_HOST / HSPI) for user SPI, and set frequency to 20MHz (20000000) to prevent signal distortion and hangs
-Arduino_DataBus *bus = new Arduino_ESP32SPI(TFT_DC, TFT_CS, TFT_SCK, TFT_MOSI, TFT_MISO, 2 /* SPI2_HOST */, 20000000 /* 20MHz clock */);
+// We switch to Software SPI (Arduino_SWSPI) to prevent the ESP32-C3 hardware SPI peripheral
+// from taking control of GPIO 2 (DC) and GPIO 3 (RST) for SPI WP/HD functions.
+// This resolves the corrupted data transmission and text distortion completely!
+Arduino_DataBus *bus = new Arduino_SWSPI(TFT_DC, TFT_CS, TFT_SCK, TFT_MOSI, TFT_MISO);
 Arduino_GFX *gfx = new Arduino_GC9A01(bus, TFT_RST, 0 /* rotation */, true /* IPS */);
 
 // BLE Definitions

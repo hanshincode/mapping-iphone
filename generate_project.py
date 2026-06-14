@@ -1182,7 +1182,7 @@ def write_xcodeproj():
 			isa = PBXGroup;
 			children = (
 				4A4A00401A1A1A1A00000009 /* MapNavigationApp */,
-				4A4A00101A1A1A1A00000006 /* Products */,
+				4A4A00101A1A1A1A0000000A /* Products */,
 			);
 			sourceTree = "<group>";
 		};
@@ -1198,7 +1198,7 @@ def write_xcodeproj():
 			path = MapNavigationApp;
 			sourceTree = "<group>";
 		};
-		4A4A00101A1A1A1A00000006 /* Products */ = {
+		4A4A00101A1A1A1A0000000A /* Products */ = {
 			isa = PBXGroup;
 			children = (
 				4A4A00101A1A1A1A00000006 /* MapNavigationApp.app */,
@@ -1249,7 +1249,7 @@ def write_xcodeproj():
 				Base,
 			);
 			mainGroup = 4A4A00301A1A1A1A00000008;
-			productRefGroup = 4A4A00101A1A1A1A00000006 /* Products */;
+			productRefGroup = 4A4A00101A1A1A1A0000000A /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
