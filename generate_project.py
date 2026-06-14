@@ -925,7 +925,9 @@ struct ContentView: View {
             }
         }
         .preferredColorScheme(.dark)
+        }
     }
+}
     
     private func loadAPIKey() {
         googleAPIKey = UserDefaults.standard.string(forKey: "google_api_key") ?? ""
