@@ -1,0 +1,38 @@
+workflows:
+  ios-unsigned:
+    name: iOS Unsigned Build
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+    environment:
+      vars:
+        XCODE_PROJECT: "MapNavigationApp.xcodeproj"
+        XCODE_SCHEME: "MapNavigationApp"
+      xcode: latest
+      cocoapods: default
+    triggering:
+      events:
+        - push
+      branches:
+        - main
+    scripts:
+      - name: Generate Xcode Project
+        script: |
+          python3 generate_project.py
+      - name: Build Unsigned Xcode Archive
+        script: |
+          xcodebuild archive \
+            -project "$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -configuration Release \
+            -archivePath MapNavigationApp.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            PROVISIONING_PROFILE_REQUIRED=NO
+      - name: Package into Unsigned IPA
+        script: |
+          mkdir -p Payload
+          cp -r MapNavigationApp.xcarchive/Products/Applications/MapNavigationApp.app Payload/
+          zip -r MapNavigationApp-Unsigned.ipa Payload
+    artifacts:
+      - MapNavigationApp-Unsigned.ipa
