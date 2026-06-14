@@ -61,7 +61,7 @@ python generate_project.py
    git add .
    git commit -m "Initial commit"
    git branch -M main
-   git remote add origin <LINK_GITHUB_REPO_CUA_BAN>
+   git remote add origin git@github.com:hanshincode/mapping-iphone.git
    git push -u origin main
    ```
 
