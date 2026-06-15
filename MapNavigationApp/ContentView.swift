@@ -3,6 +3,7 @@ import CoreBluetooth
 import CoreLocation
 import UIKit
 
+@MainActor
 struct ContentView: View {
     @StateObject private var bleManager = BLEManager()
     @StateObject private var navManager: NavigationManager
@@ -15,7 +16,6 @@ struct ContentView: View {
     @State private var showClipboardPrompt = false
     @State private var showSplash = true
     
-    @MainActor
     init() {
         let ble = BLEManager()
         _bleManager = StateObject(wrappedValue: ble)
@@ -292,6 +292,7 @@ struct ContentView: View {
     }
 }
 
+@MainActor
 struct SettingsView: View {
     @Binding var googleAPIKey: String
     @Binding var showSettings: Bool
@@ -349,6 +350,7 @@ struct SettingsView: View {
     }
 }
 
+@MainActor
 struct BLEScannerView: View {
     @ObservedObject var bleManager: BLEManager
     @Binding var isPresented: Bool
@@ -417,6 +419,7 @@ struct BLEScannerView: View {
     }
 }
 
+@MainActor
 struct SplashView: View {
     @Binding var showSplash: Bool
     
