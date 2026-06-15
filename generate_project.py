@@ -85,7 +85,7 @@ class BLEManager: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeriph
             return
         }
         if let data = string.data(using: .utf8) {
-            let writeType: CBPeripheralWriteType = characteristic.properties.contains(.writeWithoutResponse) ? .writeWithoutResponse : .withResponse
+            let writeType: CBCharacteristicWriteType = characteristic.properties.contains(.writeWithoutResponse) ? .withoutResponse : .withResponse
             peripheral.writeValue(data, for: characteristic, type: writeType)
             print("Sent BLE: \(string)")
         }
@@ -1062,7 +1062,7 @@ struct BLEScannerView: View {
                             .listRowBackground(Color(red: 0.14, green: 0.16, blue: 0.22))
                         }
                         .background(Color.clear)
-                        .scrollContentBackground(.hidden)
+                        .hideScrollBackground()
                     }
                     Spacer()
                 }
@@ -1126,6 +1126,17 @@ struct SplashView: View {
     private func decodeBase64Image(_ base64String: String) -> UIImage? {
         guard let data = Data(base64Encoded: base64String) else { return nil }
         return UIImage(data: data)
+    }
+}
+
+extension View {
+    @ViewBuilder
+    func hideScrollBackground() -> some View {
+        if #available(iOS 16.0, *) {
+            self.scrollContentBackground(.hidden)
+        } else {
+            self
+        }
     }
 }
 

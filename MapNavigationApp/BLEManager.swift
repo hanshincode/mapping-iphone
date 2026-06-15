@@ -56,7 +56,7 @@ class BLEManager: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeriph
             return
         }
         if let data = string.data(using: .utf8) {
-            let writeType: CBPeripheralWriteType = characteristic.properties.contains(.writeWithoutResponse) ? .writeWithoutResponse : .withResponse
+            let writeType: CBCharacteristicWriteType = characteristic.properties.contains(.writeWithoutResponse) ? .withoutResponse : .withResponse
             peripheral.writeValue(data, for: characteristic, type: writeType)
             print("Sent BLE: \(string)")
         }

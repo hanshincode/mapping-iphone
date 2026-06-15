@@ -398,7 +398,7 @@ struct BLEScannerView: View {
                             .listRowBackground(Color(red: 0.14, green: 0.16, blue: 0.22))
                         }
                         .background(Color.clear)
-                        .scrollContentBackground(.hidden)
+                        .hideScrollBackground()
                     }
                     Spacer()
                 }
@@ -462,6 +462,17 @@ struct SplashView: View {
     private func decodeBase64Image(_ base64String: String) -> UIImage? {
         guard let data = Data(base64Encoded: base64String) else { return nil }
         return UIImage(data: data)
+    }
+}
+
+extension View {
+    @ViewBuilder
+    func hideScrollBackground() -> some View {
+        if #available(iOS 16.0, *) {
+            self.scrollContentBackground(.hidden)
+        } else {
+            self
+        }
     }
 }
 
