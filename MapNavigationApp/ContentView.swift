@@ -15,6 +15,7 @@ struct ContentView: View {
     @State private var showClipboardPrompt = false
     @State private var showSplash = true
     
+    @MainActor
     init() {
         let ble = BLEManager()
         _bleManager = StateObject(wrappedValue: ble)

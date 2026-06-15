@@ -1,6 +1,7 @@
 import Foundation
 import CoreBluetooth
 
+@MainActor
 class BLEManager: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeripheralDelegate {
     @Published var isConnected = false
     @Published var isScanning = false

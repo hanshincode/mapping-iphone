@@ -38,6 +38,7 @@ struct LatLng: Codable {
     let longitude: Double?
 }
 
+@MainActor
 class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var isNavigating = false
     @Published var currentInstruction = "Chua bat dau"
@@ -303,7 +304,6 @@ class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         
         // Extract instructions and street name
         let instructionText = step.navigationInstruction?.instructions ?? "Di thang"
-        let maneuver = step.navigationInstruction?.maneuver ?? "STRAIGHT"
         
         self.currentInstruction = instructionText
         self.nextStreet = extractStreetName(from: instructionText)

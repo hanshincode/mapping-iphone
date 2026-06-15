@@ -30,6 +30,7 @@ def write_ble_manager():
     content = r"""import Foundation
 import CoreBluetooth
 
+@MainActor
 class BLEManager: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeripheralDelegate {
     @Published var isConnected = false
     @Published var isScanning = false
@@ -187,6 +188,7 @@ struct LatLng: Codable {
     let longitude: Double?
 }
 
+@MainActor
 class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var isNavigating = false
     @Published var currentInstruction = "Chua bat dau"
@@ -452,7 +454,6 @@ class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         
         // Extract instructions and street name
         let instructionText = step.navigationInstruction?.instructions ?? "Di thang"
-        let maneuver = step.navigationInstruction?.maneuver ?? "STRAIGHT"
         
         self.currentInstruction = instructionText
         self.nextStreet = extractStreetName(from: instructionText)
@@ -706,6 +707,7 @@ struct ContentView: View {
     @State private var showClipboardPrompt = false
     @State private var showSplash = true
     
+    @MainActor
     init() {
         let ble = BLEManager()
         _bleManager = StateObject(wrappedValue: ble)
