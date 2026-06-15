@@ -1240,6 +1240,28 @@ def write_info_plist():
         f.write(content)
     print("Wrote Info.plist")
 
+def write_assets():
+    import os
+    os.makedirs("MapNavigationApp/Assets.xcassets/AppIcon.appiconset", exist_ok=True)
+    content = """{
+  "images" : [
+    {
+      "idiom" : "universal",
+      "platform" : "ios",
+      "size" : "1024x1024",
+      "filename" : "icon_1024.png",
+      "scale" : "1x"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}"""
+    with open("MapNavigationApp/Assets.xcassets/AppIcon.appiconset/Contents.json", "w", encoding="utf-8") as f:
+        f.write(content)
+    print("Wrote Assets.xcassets")
+
 def write_xcodeproj():
     content = """// !$*UTF8*$!
 {
@@ -1254,6 +1276,7 @@ def write_xcodeproj():
 		4A4A00041A1A1A1A00000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A4A00031A1A1A1A00000002 /* ContentView.swift */; };
 		4A4A00061A1A1A1A00000003 /* BLEManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A4A00051A1A1A1A00000003 /* BLEManager.swift */; };
 		4A4A00081A1A1A1A00000004 /* NavigationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A4A00071A1A1A1A00000004 /* NavigationManager.swift */; };
+		4A4A00221A1A1A1A00000005 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4A4A00211A1A1A1A00000005 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -1262,6 +1285,7 @@ def write_xcodeproj():
 		4A4A00051A1A1A1A00000003 /* BLEManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEManager.swift; sourceTree = "<group>"; };
 		4A4A00071A1A1A1A00000004 /* NavigationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationManager.swift; sourceTree = "<group>"; };
 		4A4A00091A1A1A1A00000005 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		4A4A00211A1A1A1A00000005 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		4A4A00101A1A1A1A00000006 /* MapNavigationApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MapNavigationApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -1292,6 +1316,7 @@ def write_xcodeproj():
 				4A4A00051A1A1A1A00000003 /* BLEManager.swift */,
 				4A4A00071A1A1A1A00000004 /* NavigationManager.swift */,
 				4A4A00091A1A1A1A00000005 /* Info.plist */,
+				4A4A00211A1A1A1A00000005 /* Assets.xcassets */,
 			);
 			path = MapNavigationApp;
 			sourceTree = "<group>";
@@ -1361,6 +1386,7 @@ def write_xcodeproj():
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4A4A00221A1A1A1A00000005 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1510,6 +1536,7 @@ def write_xcodeproj():
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				PRODUCT_BUNDLE_IDENTIFIER = com.antigravity.MapNavigationApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1533,6 +1560,7 @@ def write_xcodeproj():
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				PRODUCT_BUNDLE_IDENTIFIER = com.antigravity.MapNavigationApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1662,6 +1690,7 @@ if __name__ == "__main__":
     write_navigation_manager()
     write_content_view()
     write_info_plist()
+    write_assets()
     write_xcodeproj()
     write_scheme()
     print("All files generated successfully!")
