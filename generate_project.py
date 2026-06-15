@@ -55,8 +55,10 @@ class BLEManager: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeriph
         centralManager.scanForPeripherals(withServices: [serviceUUID], options: nil)
         
         // Auto-stop scanning after 15 seconds
-        DispatchQueue.main.asyncAfter(deadline: .now() + 15.0) { [weak self] in
-            self?.stopScanning()
+        Task {
+            try? await Task.sleep(nanoseconds: 15_000_000_000)
+            guard !Task.isCancelled else { return }
+            self.stopScanning()
         }
     }
     
@@ -229,51 +231,41 @@ class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         self.offRouteCount = 0
         
         guard let userLoc = locationManager.location else {
-            DispatchQueue.main.async {
-                self.errorMessage = "Khong lay duoc vi tri GPS hien tai."
-            }
+            self.errorMessage = "Khong lay duoc vi tri GPS hien tai."
             return
         }
         
         let success = await fetchGoogleMotorbikeRoute(from: userLoc.coordinate, to: destination, apiKey: apiKey)
         if success {
-            DispatchQueue.main.async {
-                self.isNavigating = true
-                self.currentStepIndex = 0
-                self.locationManager.startUpdatingLocation()
-                self.errorMessage = nil
-                self.processCurrentStep()
-            }
+            self.isNavigating = true
+            self.currentStepIndex = 0
+            self.locationManager.startUpdatingLocation()
+            self.errorMessage = nil
+            self.processCurrentStep()
         }
     }
     
     func stopNavigation() {
-        DispatchQueue.main.async {
-            self.isNavigating = false
-            self.locationManager.stopUpdatingLocation()
-            self.routeSteps = nil
-            self.currentInstruction = "Da dung chi duong"
-            self.nextStreet = "..."
-            self.distanceToNextTurn = 0.0
-            
-            // Send turnType = 0 (straight/idle)
-            self.bleManager?.sendData("0;--;Dung dan duong")
-        }
+        self.isNavigating = false
+        self.locationManager.stopUpdatingLocation()
+        self.routeSteps = nil
+        self.currentInstruction = "Da dung chi duong"
+        self.nextStreet = "..."
+        self.distanceToNextTurn = 0.0
+        
+        // Send turnType = 0 (straight/idle)
+        self.bleManager?.sendData("0;--;Dung dan duong")
     }
     
     // Resolves Google Maps link and starts navigation
     func handleGoogleMapsURL(_ urlString: String, apiKey: String) async {
-        DispatchQueue.main.async {
-            self.isResolvingURL = true
-            self.errorMessage = nil
-        }
+        self.isResolvingURL = true
+        self.errorMessage = nil
         
         // 1. Resolve redirect to get the long URL
         guard let resolvedURLString = await resolveShortenedURL(urlString) else {
-            DispatchQueue.main.async {
-                self.isResolvingURL = false
-                self.errorMessage = "Khong the giai ma link Google Maps."
-            }
+            self.isResolvingURL = false
+            self.errorMessage = "Khong the giai ma link Google Maps."
             return
         }
         
@@ -291,16 +283,12 @@ class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             }
         }
         
-        DispatchQueue.main.async {
-            self.isResolvingURL = false
-        }
+        self.isResolvingURL = false
         
         if let coord = destinationCoord {
             await startNavigation(destination: coord, name: name, apiKey: apiKey)
         } else {
-            DispatchQueue.main.async {
-                self.errorMessage = "Khong tim thay toa do diem den."
-            }
+            self.errorMessage = "Khong tim thay toa do diem den."
         }
     }
     
@@ -418,9 +406,7 @@ class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
                 let errStr = String(data: data, encoding: .utf8) ?? "Unknown error"
                 print("Google API Error (\\(httpResponse.statusCode)): \\(errStr)")
-                DispatchQueue.main.async {
-                    self.errorMessage = "Google API tra ve loi \\(httpResponse.statusCode). Kiem tra lai API Key."
-                }
+                self.errorMessage = "Google API tra ve loi \\(httpResponse.statusCode). Kiem tra lai API Key."
                 return false
             }
             
@@ -428,22 +414,16 @@ class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             let routeResponse = try decoder.decode(RouteResponse.self, from: data)
             
             guard let steps = routeResponse.routes?.first?.legs?.first?.steps, !steps.isEmpty else {
-                DispatchQueue.main.async {
-                    self.errorMessage = "Khong tim thay cac buoc huong dan tuyen duong."
-                }
+                self.errorMessage = "Khong tim thay cac buoc huong dan tuyen duong."
                 return false
             }
             
-            DispatchQueue.main.async {
-                self.routeSteps = steps
-            }
+            self.routeSteps = steps
             return true
             
         } catch {
             print("Failed to fetch Google route: \\(error)")
-            DispatchQueue.main.async {
-                self.errorMessage = "Loi ket noi mang: \\(error.localizedDescription)"
-            }
+            self.errorMessage = "Loi ket noi mang: \\(error.localizedDescription)"
             return false
         }
     }
@@ -542,11 +522,9 @@ class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         Task {
             let success = await fetchGoogleMotorbikeRoute(from: userLoc.coordinate, to: dest, apiKey: apiKey)
             if success {
-                DispatchQueue.main.async {
-                    self.currentStepIndex = 0
-                    self.errorMessage = nil
-                    self.processCurrentStep()
-                }
+                self.currentStepIndex = 0
+                self.errorMessage = nil
+                self.processCurrentStep()
             }
         }
     }
@@ -611,11 +589,9 @@ class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
                             lastRecalculateTime = now
                             offRouteCount = 0
                             
-                            DispatchQueue.main.async {
-                                self.currentInstruction = "Di sai duong, dang tinh lai..."
-                                self.nextStreet = "..."
-                                self.bleManager?.sendData("0;--;Dang tinh lai...")
-                            }
+                            self.currentInstruction = "Di sai duong, dang tinh lai..."
+                            self.nextStreet = "..."
+                            self.bleManager?.sendData("0;--;Dang tinh lai...")
                             
                             recalculateRoute()
                             return
@@ -637,15 +613,13 @@ class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
                 let turnLocation = CLLocation(latitude: turnLat, longitude: turnLng)
                 let distance = userLoc.distance(from: turnLocation)
                 
-                DispatchQueue.main.async {
-                    self.distanceToNextTurn = distance
-                    
-                    if distance < 15.0 {
-                        self.currentStepIndex = nextStepIndex
-                        self.processCurrentStep()
-                    } else {
-                        self.sendBLEUpdate()
-                    }
+                self.distanceToNextTurn = distance
+                
+                if distance < 15.0 {
+                    self.currentStepIndex = nextStepIndex
+                    self.processCurrentStep()
+                } else {
+                    self.sendBLEUpdate()
                 }
             }
         } else {
@@ -655,15 +629,13 @@ class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
                 let destLocation = CLLocation(latitude: destLat, longitude: destLng)
                 let distance = userLoc.distance(from: destLocation)
                 
-                DispatchQueue.main.async {
-                    self.distanceToNextTurn = distance
-                    
-                    if distance < 20.0 {
-                        self.stopNavigation()
-                        self.sendArrivedUpdate()
-                    } else {
-                        self.sendBLEUpdate(isLastStep: true)
-                    }
+                self.distanceToNextTurn = distance
+                
+                if distance < 20.0 {
+                    self.stopNavigation()
+                    self.sendArrivedUpdate()
+                } else {
+                    self.sendBLEUpdate(isLastStep: true)
                 }
             }
         }
@@ -1141,7 +1113,9 @@ struct SplashView: View {
             }
         }
         .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            Task {
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                guard !Task.isCancelled else { return }
                 withAnimation(.easeOut(duration: 0.5)) {
                     showSplash = false
                 }

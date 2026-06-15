@@ -26,8 +26,10 @@ class BLEManager: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeriph
         centralManager.scanForPeripherals(withServices: [serviceUUID], options: nil)
         
         // Auto-stop scanning after 15 seconds
-        DispatchQueue.main.asyncAfter(deadline: .now() + 15.0) { [weak self] in
-            self?.stopScanning()
+        Task {
+            try? await Task.sleep(nanoseconds: 15_000_000_000)
+            guard !Task.isCancelled else { return }
+            self.stopScanning()
         }
     }
     
