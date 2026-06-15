@@ -52,7 +52,7 @@ class BLEManager: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeriph
         guard centralManager.state == .poweredOn else { return }
         isScanning = true
         discoveredPeripherals.removeAll()
-        centralManager.scanForPeripherals(withServices: [serviceUUID], options: nil)
+        centralManager.scanForPeripherals(withServices: nil, options: nil)
         
         // Auto-stop scanning after 15 seconds
         Task {
@@ -103,7 +103,9 @@ class BLEManager: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeriph
     
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
         if !discoveredPeripherals.contains(where: { $0.identifier == peripheral.identifier }) {
-            discoveredPeripherals.append(peripheral)
+            if let name = peripheral.name, !name.isEmpty {
+                discoveredPeripherals.append(peripheral)
+            }
         }
     }
     
@@ -899,6 +901,9 @@ struct ContentView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .onOpenURL { url in
+            handleIncomingURL(url)
+        }
         }
     }
 }
@@ -913,6 +918,30 @@ struct ContentView: View {
                 clipboardLink = clipboardString
                 showClipboardPrompt = true
                 UIPasteboard.general.string = ""
+            }
+        }
+    }
+    
+    private func handleIncomingURL(_ url: URL) {
+        let urlString = url.absoluteString
+        let prefix = "mapnavcomp://"
+        guard urlString.hasPrefix(prefix) else { return }
+        
+        var targetLink = String(urlString.dropFirst(prefix.count))
+        if targetLink.hasPrefix("url?link=") {
+            targetLink = String(targetLink.dropFirst("url?link=".count))
+        }
+        
+        guard let decodedLink = targetLink.removingPercentEncoding?.trimmingCharacters(in: .whitespacesAndNewlines) else { return }
+        
+        var finalLink = decodedLink
+        if !finalLink.hasPrefix("http://") && !finalLink.hasPrefix("https://") {
+            finalLink = "https://" + finalLink
+        }
+        
+        if finalLink.contains("maps.app.goo.gl") || finalLink.contains("google.com/maps") {
+            Task {
+                await navManager.handleGoogleMapsURL(finalLink, apiKey: googleAPIKey)
             }
         }
     }
@@ -1192,6 +1221,17 @@ def write_info_plist():
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
+	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>mapnavcomp</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>com.hanshincode.mapnavigationapp</string>
+		</dict>
 	</array>
 </dict>
 </plist>

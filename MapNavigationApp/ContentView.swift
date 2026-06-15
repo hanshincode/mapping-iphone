@@ -235,6 +235,9 @@ struct ContentView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .onOpenURL { url in
+            handleIncomingURL(url)
+        }
         }
     }
 }
@@ -249,6 +252,30 @@ struct ContentView: View {
                 clipboardLink = clipboardString
                 showClipboardPrompt = true
                 UIPasteboard.general.string = ""
+            }
+        }
+    }
+    
+    private func handleIncomingURL(_ url: URL) {
+        let urlString = url.absoluteString
+        let prefix = "mapnavcomp://"
+        guard urlString.hasPrefix(prefix) else { return }
+        
+        var targetLink = String(urlString.dropFirst(prefix.count))
+        if targetLink.hasPrefix("url?link=") {
+            targetLink = String(targetLink.dropFirst("url?link=".count))
+        }
+        
+        guard let decodedLink = targetLink.removingPercentEncoding?.trimmingCharacters(in: .whitespacesAndNewlines) else { return }
+        
+        var finalLink = decodedLink
+        if !finalLink.hasPrefix("http://") && !finalLink.hasPrefix("https://") {
+            finalLink = "https://" + finalLink
+        }
+        
+        if finalLink.contains("maps.app.goo.gl") || finalLink.contains("google.com/maps") {
+            Task {
+                await navManager.handleGoogleMapsURL(finalLink, apiKey: googleAPIKey)
             }
         }
     }

@@ -23,7 +23,7 @@ class BLEManager: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeriph
         guard centralManager.state == .poweredOn else { return }
         isScanning = true
         discoveredPeripherals.removeAll()
-        centralManager.scanForPeripherals(withServices: [serviceUUID], options: nil)
+        centralManager.scanForPeripherals(withServices: nil, options: nil)
         
         // Auto-stop scanning after 15 seconds
         Task {
@@ -74,7 +74,9 @@ class BLEManager: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeriph
     
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
         if !discoveredPeripherals.contains(where: { $0.identifier == peripheral.identifier }) {
-            discoveredPeripherals.append(peripheral)
+            if let name = peripheral.name, !name.isEmpty {
+                discoveredPeripherals.append(peripheral)
+            }
         }
     }
     
