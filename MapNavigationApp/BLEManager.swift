@@ -10,6 +10,7 @@ class BLEManager: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeriph
     
     private var centralManager: CBCentralManager!
     private var writeCharacteristic: CBCharacteristic?
+    private let lastPeripheralIDKey = "last_ble_peripheral_id"
     
     let serviceUUID = CBUUID(string: "FFE0")
     let characteristicUUID = CBUUID(string: "FFE1")
@@ -42,6 +43,7 @@ class BLEManager: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeriph
         stopScanning()
         connectedPeripheral = peripheral
         connectedPeripheral?.delegate = self
+        UserDefaults.standard.set(peripheral.identifier.uuidString, forKey: lastPeripheralIDKey)
         centralManager.connect(peripheral, options: nil)
     }
     
@@ -73,9 +75,20 @@ class BLEManager: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeriph
     }
     
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
+        let name = peripheral.name ?? advertisementData[CBAdvertisementDataLocalNameKey] as? String ?? ""
+        let lastPeripheralID = UserDefaults.standard.string(forKey: lastPeripheralIDKey)
+        
         if !discoveredPeripherals.contains(where: { $0.identifier == peripheral.identifier }) {
-            if let name = peripheral.name, !name.isEmpty {
+            if !name.isEmpty {
                 discoveredPeripherals.append(peripheral)
+            }
+        }
+        
+        if connectedPeripheral == nil {
+            let isPreviousDevice = peripheral.identifier.uuidString == lastPeripheralID
+            let isNavigationDevice = name == "ESP32_Nav_Companion"
+            if isPreviousDevice || isNavigationDevice {
+                connect(to: peripheral)
             }
         }
     }
@@ -88,6 +101,7 @@ class BLEManager: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeriph
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
         isConnected = false
         connectedPeripheral = nil
+        startScanning()
     }
     
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {

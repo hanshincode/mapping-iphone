@@ -15,6 +15,7 @@ struct ContentView: View {
     @State private var clipboardLink = ""
     @State private var showClipboardPrompt = false
     @State private var showSplash = true
+    @State private var recentDestinations: [String] = []
     
     init() {
         let ble = BLEManager()
@@ -36,7 +37,7 @@ struct ContentView: View {
                 VStack(spacing: 20) {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Thiet Bi Chi Duong")
+                            Text("Thiết bị chỉ đường")
                                 .font(.headline)
                                 .foregroundColor(.white)
                             
@@ -44,7 +45,7 @@ struct ContentView: View {
                                 Circle()
                                     .fill(bleManager.isConnected ? Color.green : Color.red)
                                     .frame(width: 8, height: 8)
-                                Text(bleManager.isConnected ? "Da ket noi BLE" : "Mat ket noi")
+                                Text(bleManager.isConnected ? "Đã kết nối BLE" : (bleManager.isScanning ? "Đang tìm thiết bị" : "Mất kết nối"))
                                     .font(.subheadline)
                                     .foregroundColor(.gray)
                             }
@@ -56,7 +57,7 @@ struct ContentView: View {
                             showBLEScanner = true
                             bleManager.startScanning()
                         }) {
-                            Text(bleManager.isConnected ? "Doi Thiet Bi" : "Ket Noi")
+                            Text(bleManager.isConnected ? "Đổi thiết bị" : "Kết nối")
                                 .font(.subheadline)
                                 .bold()
                                 .foregroundColor(.white)
@@ -76,21 +77,21 @@ struct ContentView: View {
                     
                     VStack(spacing: 16) {
                         if navManager.isNavigating {
-                            Text("DANG DAN DUONG XE MAY")
+                            Text(navManager.navigationStatusText)
                                 .font(.caption)
                                 .bold()
-                                .foregroundColor(.blue)
+                                .foregroundColor(navManager.navigationStatusColor)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 4)
-                                .background(Capsule().fill(Color.blue.opacity(0.15)))
+                                .background(Capsule().fill(navManager.navigationStatusColor.opacity(0.16)))
                             
                             VStack(spacing: 12) {
                                 Image(systemName: getArrowSystemName(navManager.currentInstruction))
                                     .font(.system(size: 60, weight: .bold))
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(navManager.navigationStatusColor)
                                     .transition(.scale)
                                 
-                                Text(String(format: "Con %.0f met", navManager.distanceToNextTurn))
+                                Text(navManager.formattedDistanceToNextTurn)
                                     .font(.system(size: 32, weight: .bold))
                                     .foregroundColor(.white)
                                 
@@ -100,9 +101,17 @@ struct ContentView: View {
                                     .foregroundColor(.white)
                                     .padding(.horizontal)
                                 
-                                Text("Sap vao: \(navManager.nextStreet)")
+                                Text("Sắp vào: \(navManager.nextStreet)")
                                     .font(.headline)
                                     .foregroundColor(.gray)
+                                
+                                if !navManager.followingInstruction.isEmpty {
+                                    Text("Sau đó: \(navManager.followingInstruction)")
+                                        .font(.subheadline)
+                                        .foregroundColor(.gray.opacity(0.9))
+                                        .multilineTextAlignment(.center)
+                                        .padding(.horizontal)
+                                }
                             }
                             .padding(.vertical)
                             
@@ -111,7 +120,7 @@ struct ContentView: View {
                             }) {
                                 HStack {
                                     Image(systemName: "stop.fill")
-                                    Text("Dung dan duong")
+                                    Text("Dừng dẫn đường")
                                 }
                                 .font(.headline)
                                 .foregroundColor(.white)
@@ -126,12 +135,12 @@ struct ContentView: View {
                                     .font(.system(size: 50))
                                     .foregroundColor(.gray.opacity(0.6))
                                 
-                                Text("San sang dan duong")
+                                Text("Sẵn sàng dẫn đường")
                                     .font(.title3)
                                     .bold()
                                     .foregroundColor(.white)
                                 
-                                Text("Hay tim kiem dia diem ben duoi, hoac copy link tu Google Maps de dong bo.")
+                                Text("Tìm điểm đến bên dưới, hoặc copy link từ Google Maps để đồng bộ.")
                                     .font(.subheadline)
                                     .foregroundColor(.gray)
                                     .multilineTextAlignment(.center)
@@ -150,7 +159,7 @@ struct ContentView: View {
                         HStack {
                             Image(systemName: "magnifyingglass")
                                 .foregroundColor(.gray)
-                            TextField("Tim dia diem hoac dan link GMap...", text: $inputDestination)
+                            TextField("Tìm địa điểm hoặc dán link Google Maps...", text: $inputDestination)
                                 .foregroundColor(.white)
                                 .keyboardType(.default)
                                 .autocapitalization(.none)
@@ -170,7 +179,7 @@ struct ContentView: View {
                                 await startManualRouting()
                             }
                         }) {
-                            Text("Tinh Toan Lo Trinh Xe May")
+                            Text("Tính lộ trình xe máy")
                                 .font(.headline)
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
@@ -181,10 +190,45 @@ struct ContentView: View {
                                 )
                         }
                         .disabled(inputDestination.isEmpty)
+                        
+                        Button(action: {
+                            Task { await navManager.runDemoRoute() }
+                        }) {
+                            HStack {
+                                Image(systemName: "play.circle.fill")
+                                Text("Chạy demo thiết bị")
+                            }
+                            .font(.subheadline)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(RoundedRectangle(cornerRadius: 16).fill(Color.white.opacity(0.12)))
+                        }
+                    }
+                    
+                    if !recentDestinations.isEmpty && !navManager.isNavigating {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Gần đây")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                            ForEach(recentDestinations.prefix(3), id: \.self) { item in
+                                Button(action: { inputDestination = item }) {
+                                    HStack {
+                                        Image(systemName: "clock.arrow.circlepath")
+                                            .foregroundColor(.gray)
+                                        Text(item)
+                                            .lineLimit(1)
+                                            .foregroundColor(.white)
+                                        Spacer()
+                                    }
+                                    .padding(.vertical, 6)
+                                }
+                            }
+                        }
                     }
                     
                     if navManager.isResolvingURL {
-                        ProgressView("Dang giai ma link Google Maps...")
+                        ProgressView("Đang giải mã link Google Maps...")
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             .foregroundColor(.white)
                     }
@@ -213,6 +257,7 @@ struct ContentView: View {
             }
             .onAppear {
                 loadAPIKey()
+                loadRecentDestinations()
                 checkClipboardForGoogleMapsLink()
             }
             .sheet(isPresented: $showSettings) {
@@ -223,14 +268,14 @@ struct ContentView: View {
             }
             .alert(isPresented: $showClipboardPrompt) {
                 Alert(
-                    title: Text("Phat Hien Link Google Maps"),
-                    message: Text("Ban co muon bat dau lo trinh xe may den dia diem nay tu khay nho tam?"),
-                    primaryButton: .default(Text("Dong Y")) {
+                    title: Text("Phát hiện link Google Maps"),
+                    message: Text("Bạn có muốn bắt đầu lộ trình xe máy từ link trong khay nhớ tạm không?"),
+                    primaryButton: .default(Text("Đồng ý")) {
                         Task {
                             await navManager.handleGoogleMapsURL(clipboardLink, apiKey: googleAPIKey)
                         }
                     },
-                    secondaryButton: .cancel(Text("Bo qua"))
+                    secondaryButton: .cancel(Text("Bỏ qua"))
                 )
             }
         }
@@ -239,11 +284,24 @@ struct ContentView: View {
             handleIncomingURL(url)
         }
         }
+        }
     }
-}
     
     private func loadAPIKey() {
         googleAPIKey = UserDefaults.standard.string(forKey: "google_api_key") ?? ""
+    }
+    
+    private func loadRecentDestinations() {
+        recentDestinations = UserDefaults.standard.stringArray(forKey: "recent_destinations") ?? []
+    }
+    
+    private func saveRecentDestination(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        recentDestinations.removeAll { $0.caseInsensitiveCompare(trimmed) == .orderedSame }
+        recentDestinations.insert(trimmed, at: 0)
+        recentDestinations = Array(recentDestinations.prefix(8))
+        UserDefaults.standard.set(recentDestinations, forKey: "recent_destinations")
     }
     
     private func checkClipboardForGoogleMapsLink() {
@@ -282,36 +340,38 @@ struct ContentView: View {
     
     private func startManualRouting() async {
         if googleAPIKey.isEmpty {
-            navManager.errorMessage = "Vui long nhap Google API Key trong phan Cai Dat."
+            navManager.errorMessage = "Vui lòng nhập Google API Key trong phần Cài đặt."
             return
         }
         
         if inputDestination.contains("maps.app.goo.gl") || inputDestination.contains("google.com/maps") {
             await navManager.handleGoogleMapsURL(inputDestination, apiKey: googleAPIKey)
+            if navManager.errorMessage == nil { saveRecentDestination(inputDestination) }
         } else {
             let geocoder = CLGeocoder()
             do {
                 let placemarks = try await geocoder.geocodeAddressString(inputDestination)
                 if let coord = placemarks.first?.location?.coordinate {
                     await navManager.startNavigation(destination: coord, name: inputDestination, apiKey: googleAPIKey)
+                    if navManager.errorMessage == nil { saveRecentDestination(inputDestination) }
                 } else {
-                    navManager.errorMessage = "Khong tim thay vi tri cua dia chi nay."
+                    navManager.errorMessage = "Không tìm thấy vị trí của địa chỉ này."
                 }
             } catch {
-                navManager.errorMessage = "Loi tim kiem: \(error.localizedDescription)"
+                navManager.errorMessage = "Lỗi tìm kiếm: \(error.localizedDescription)"
             }
         }
     }
     
     private func getArrowSystemName(_ instruction: String) -> String {
         let lowercase = instruction.lowercased()
-        if lowercase.contains("trai") || lowercase.contains("left") {
+        if lowercase.contains("trái") || lowercase.contains("trai") || lowercase.contains("left") {
             return "arrow.turn.up.left"
-        } else if lowercase.contains("phai") || lowercase.contains("right") {
+        } else if lowercase.contains("phải") || lowercase.contains("phai") || lowercase.contains("right") {
             return "arrow.turn.up.right"
-        } else if lowercase.contains("quay dau") || lowercase.contains("u-turn") {
+        } else if lowercase.contains("quay đầu") || lowercase.contains("quay dau") || lowercase.contains("u-turn") {
             return "arrow.uturn.left"
-        } else if lowercase.contains("vong xuyen") || lowercase.contains("roundabout") {
+        } else if lowercase.contains("vòng xuyến") || lowercase.contains("vong xuyen") || lowercase.contains("roundabout") {
             return "arrow.3.trianglepath"
         } else {
             return "arrow.up"
@@ -335,14 +395,14 @@ struct SettingsView: View {
                             .font(.headline)
                             .foregroundColor(.white)
                         
-                        TextField("Nhap API Key cua ban...", text: $googleAPIKey)
+                        TextField("Nhập API Key của bạn...", text: $googleAPIKey)
                             .padding()
                             .background(RoundedRectangle(cornerRadius: 12).fill(Color(red: 0.14, green: 0.16, blue: 0.22)))
                             .foregroundColor(.white)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
                         
-                        Text("Ban can dang ky API Key tren Google Cloud Console va bat dich vu Routes API de su dung che do dan duong xe may.")
+                        Text("Bạn cần đăng ký API Key trên Google Cloud Console và bật Routes API để sử dụng chế độ dẫn đường xe máy.")
                             .font(.caption)
                             .foregroundColor(.gray)
                     }
@@ -351,7 +411,7 @@ struct SettingsView: View {
                         UserDefaults.standard.set(googleAPIKey, forKey: "google_api_key")
                         showSettings = false
                     }) {
-                        Text("Luu Cai Dat")
+                        Text("Lưu cài đặt")
                             .font(.headline)
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
@@ -363,11 +423,11 @@ struct SettingsView: View {
                 }
                 .padding()
             }
-            .navigationTitle("Cai Dat App")
+            .navigationTitle("Cài đặt app")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Huy") {
+                    Button("Hủy") {
                         showSettings = false
                     }
                     .foregroundColor(.white)
@@ -392,7 +452,7 @@ struct BLEScannerView: View {
                         VStack(spacing: 15) {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            Text("Dang quet cac thiet bi BLE lan can...")
+                            Text("Đang quét các thiết bị BLE lân cận...")
                                 .foregroundColor(.gray)
                         }
                         .padding(.top, 40)
@@ -400,7 +460,7 @@ struct BLEScannerView: View {
                         List(bleManager.discoveredPeripherals, id: \.identifier) { peripheral in
                             HStack {
                                 VStack(alignment: .leading) {
-                                    Text(peripheral.name ?? "Thiet bi khong ten")
+                                    Text(peripheral.name ?? "Thiết bị không tên")
                                         .font(.headline)
                                         .foregroundColor(.white)
                                     Text("UUID: \(peripheral.identifier.uuidString.prefix(12))...")
@@ -413,7 +473,7 @@ struct BLEScannerView: View {
                                     bleManager.connect(to: peripheral)
                                     isPresented = false
                                 }) {
-                                    Text("Ket Noi")
+                                    Text("Kết nối")
                                         .font(.subheadline)
                                         .bold()
                                         .foregroundColor(.white)
@@ -431,11 +491,11 @@ struct BLEScannerView: View {
                 }
                 .padding()
             }
-            .navigationTitle("Quet Bluetooth")
+            .navigationTitle("Quét Bluetooth")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Dong") {
+                    Button("Đóng") {
                         bleManager.stopScanning()
                         isPresented = false
                     }

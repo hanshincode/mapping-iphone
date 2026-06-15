@@ -21,13 +21,13 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>Ung dung can su dung Bluetooth de gui thong tin chi duong toi thiet bi gan tren xe may.</string>
+	<string>Ứng dụng cần sử dụng Bluetooth để gửi thông tin chỉ đường tới thiết bị gắn trên xe máy.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>Ung dung can su dung Bluetooth de ket noi voi thiet bi gan tren xe.</string>
+	<string>Ứng dụng cần sử dụng Bluetooth để kết nối với thiết bị gắn trên xe.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Ung dung can su dung vi tri GPS cua ban de cap nhat khoang cach va huong di chuyen theo thoi gian thuc.</string>
+	<string>Ứng dụng cần sử dụng vị trí GPS của bạn để cập nhật khoảng cách và hướng di chuyển theo thời gian thực.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Ung dung can truy cap vi tri nen de tiep tuc chi duong khi ban bo dien thoai vao tui quan.</string>
+	<string>Ứng dụng cần truy cập vị trí nền để tiếp tục chỉ đường khi bạn bỏ điện thoại vào túi quần.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>

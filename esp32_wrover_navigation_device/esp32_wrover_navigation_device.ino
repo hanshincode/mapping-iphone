@@ -1,16 +1,16 @@
 /*
-  ESP32-C3 Navigation Companion Device
+  ESP32-WROVER-E Navigation Companion Device
   Receives navigation data over BLE and displays it on a 1.28" TFT GC9A01 screen.
   
   Wiring Map:
-  GC9A01 Screen <---> ESP32-C3 SuperMini
+  GC9A01 Screen <---> ESP32-WROVER-E (DevKitC)
   VCC           ---> 3.3V
   GND           ---> GND
-  SCL (SCLK)    ---> GPIO 4
-  SDA (MOSI)    ---> GPIO 6
-  DC            ---> GPIO 2
-  CS            ---> GPIO 7
-  RST           ---> GPIO 3
+  SCL (SCLK)    ---> GPIO 18 (VSPI SCK)
+  SDA (MOSI)    ---> GPIO 23 (VSPI MOSI)
+  CS            ---> GPIO 5  (VSPI CS)
+  DC            ---> GPIO 21
+  RST           ---> GPIO 22
 */
 
 #include <Arduino.h>
@@ -23,13 +23,13 @@
 #include <BLE2902.h>
 #include "logo.h"
 
-// Screen Pin Definitions
-#define TFT_SCK  4
-#define TFT_MOSI 6
+// Screen Pin Definitions (ESP32-WROVER-E VSPI Hardware SPI)
+#define TFT_SCK  18
+#define TFT_MOSI 23
 #define TFT_MISO -1
-#define TFT_CS   7
-#define TFT_DC   2
-#define TFT_RST  3
+#define TFT_CS   5
+#define TFT_DC   21
+#define TFT_RST  22
 
 // Color Helpers
 #ifndef BLACK
@@ -43,8 +43,6 @@
 #endif
 
 // Official Adafruit GC9A01A Initialization
-// This uses the official ESP32 hardware SPI driver, which handles pin routing perfectly
-// and frees GPIO 2/3 from the internal WP/HD conflict.
 Adafruit_GC9A01A tft(TFT_CS, TFT_DC, TFT_RST);
 
 // BLE Definitions
@@ -337,13 +335,13 @@ void setup() {
   BLEService *pService = pServer->createService(SERVICE_UUID);
   
   BLECharacteristic *pCharacteristic = pService->createCharacteristic(
-                                         CHARACTERISTIC_UUID,
-                                         BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_WRITE |
-                                         BLECharacteristic::PROPERTY_NOTIFY |
-                                         BLECharacteristic::PROPERTY_WRITE_NR
-                                       );
-                                       
+                                          CHARACTERISTIC_UUID,
+                                          BLECharacteristic::PROPERTY_READ |
+                                          BLECharacteristic::PROPERTY_WRITE |
+                                          BLECharacteristic::PROPERTY_NOTIFY |
+                                          BLECharacteristic::PROPERTY_WRITE_NR
+                                        );
+                                        
   pCharacteristic->setCallbacks(new MyCallbacks());
   pCharacteristic->addDescriptor(new BLE2902());
   

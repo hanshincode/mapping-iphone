@@ -1,6 +1,7 @@
 import Foundation
 import CoreLocation
 import MapKit
+import SwiftUI
 
 // API Response Models
 struct RouteResponse: Codable {
@@ -41,9 +42,12 @@ struct LatLng: Codable {
 @MainActor
 class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var isNavigating = false
-    @Published var currentInstruction = "Chua bat dau"
+    @Published var currentInstruction = "Chưa bắt đầu"
     @Published var nextStreet = "..."
+    @Published var followingInstruction = ""
     @Published var distanceToNextTurn: Double = 0.0 // in meters
+    @Published var turnProgressPercent = 0
+    @Published var navigationStatus = 0 // 0: normal, 1: near turn, 2: off-route, 3: arrived/demo
     @Published var routeSteps: [Step]?
     @Published var currentStepIndex = 0
     @Published var destinationName = ""
@@ -59,6 +63,32 @@ class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     private var apiKey: String = ""
     private var offRouteCount = 0
     private var lastRecalculateTime: Date = Date.distantPast
+    private var demoTask: Task<Void, Never>?
+    
+    var formattedDistanceToNextTurn: String {
+        if distanceToNextTurn >= 1000.0 {
+            return String(format: "Còn %.1f km", distanceToNextTurn / 1000.0)
+        }
+        return String(format: "Còn %.0f m", distanceToNextTurn)
+    }
+    
+    var navigationStatusText: String {
+        switch navigationStatus {
+        case 1: return "SẮP RẼ"
+        case 2: return "ĐANG TÍNH LẠI"
+        case 3: return "ĐÃ ĐẾN"
+        default: return "ĐANG DẪN ĐƯỜNG XE MÁY"
+        }
+    }
+    
+    var navigationStatusColor: Color {
+        switch navigationStatus {
+        case 1: return .yellow
+        case 2: return .red
+        case 3: return .green
+        default: return .blue
+        }
+    }
     
     init(bleManager: BLEManager) {
         super.init()
@@ -77,9 +107,11 @@ class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         self.destinationName = name
         self.apiKey = apiKey
         self.offRouteCount = 0
+        self.navigationStatus = 0
+        self.turnProgressPercent = 0
         
         guard let userLoc = locationManager.location else {
-            self.errorMessage = "Khong lay duoc vi tri GPS hien tai."
+            self.errorMessage = "Không lấy được vị trí GPS hiện tại."
             return
         }
         
@@ -95,14 +127,18 @@ class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     
     func stopNavigation() {
         self.isNavigating = false
+        self.demoTask?.cancel()
         self.locationManager.stopUpdatingLocation()
         self.routeSteps = nil
-        self.currentInstruction = "Da dung chi duong"
+        self.currentInstruction = "Đã dừng chỉ đường"
         self.nextStreet = "..."
+        self.followingInstruction = ""
         self.distanceToNextTurn = 0.0
+        self.turnProgressPercent = 0
+        self.navigationStatus = 0
         
         // Send turnType = 0 (straight/idle)
-        self.bleManager?.sendData("0;--;Dung dan duong")
+        self.bleManager?.sendData("0;--;Dung dan duong;0;0;-")
     }
     
     // Resolves Google Maps link and starts navigation
@@ -113,7 +149,7 @@ class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         // 1. Resolve redirect to get the long URL
         guard let resolvedURLString = await resolveShortenedURL(urlString) else {
             self.isResolvingURL = false
-            self.errorMessage = "Khong the giai ma link Google Maps."
+            self.errorMessage = "Không thể giải mã link Google Maps."
             return
         }
         
@@ -121,7 +157,7 @@ class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         
         // 2. Parse Coordinates directly from URL
         var destinationCoord = extractCoordinates(from: resolvedURLString)
-        var name = "Diem den tu GMap"
+        var name = "Điểm đến từ Google Maps"
         
         // 3. Fallback: Parse place name and geocode
         if destinationCoord == nil {
@@ -136,7 +172,7 @@ class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         if let coord = destinationCoord {
             await startNavigation(destination: coord, name: name, apiKey: apiKey)
         } else {
-            self.errorMessage = "Khong tim thay toa do diem den."
+            self.errorMessage = "Không tìm thấy tọa độ điểm đến."
         }
     }
     
@@ -254,7 +290,7 @@ class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
                 let errStr = String(data: data, encoding: .utf8) ?? "Unknown error"
                 print("Google API Error (\(httpResponse.statusCode)): \(errStr)")
-                self.errorMessage = "Google API tra ve loi \(httpResponse.statusCode). Kiem tra lai API Key."
+                self.errorMessage = "Google API trả về lỗi \(httpResponse.statusCode). Kiểm tra lại API Key."
                 return false
             }
             
@@ -262,7 +298,7 @@ class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             let routeResponse = try decoder.decode(RouteResponse.self, from: data)
             
             guard let steps = routeResponse.routes?.first?.legs?.first?.steps, !steps.isEmpty else {
-                self.errorMessage = "Khong tim thay cac buoc huong dan tuyen duong."
+                self.errorMessage = "Không tìm thấy các bước hướng dẫn tuyến đường."
                 return false
             }
             
@@ -271,7 +307,7 @@ class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             
         } catch {
             print("Failed to fetch Google route: \(error)")
-            self.errorMessage = "Loi ket noi mang: \(error.localizedDescription)"
+            self.errorMessage = "Lỗi kết nối mạng: \(error.localizedDescription)"
             return false
         }
     }
@@ -281,17 +317,18 @@ class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         let step = steps[currentStepIndex]
         
         // Extract instructions and street name
-        let instructionText = step.navigationInstruction?.instructions ?? "Di thang"
+        let instructionText = step.navigationInstruction?.instructions ?? "Đi thẳng"
         
         self.currentInstruction = instructionText
         self.nextStreet = extractStreetName(from: instructionText)
+        self.followingInstruction = nextInstruction(after: currentStepIndex)
         
         sendBLEUpdate()
     }
     
     private func extractStreetName(from instruction: String) -> String {
         let lowercase = instruction.lowercased()
-        let prefixes = ["tai duong ", "vao duong ", "tai ", "vao ", "huong ve "]
+        let prefixes = ["tại đường ", "vào đường ", "tại ", "vào ", "hướng về ", "tai duong ", "vao duong ", "tai ", "vao ", "huong ve "]
         
         for prefix in prefixes {
             if let range = lowercase.range(of: prefix) {
@@ -300,6 +337,13 @@ class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             }
         }
         return instruction
+    }
+    
+    private func nextInstruction(after index: Int) -> String {
+        guard let steps = routeSteps else { return "" }
+        let nextIndex = index + 1
+        guard nextIndex < steps.count else { return "" }
+        return steps[nextIndex].navigationInstruction?.instructions ?? ""
     }
     
     private func parseManeuver(_ maneuver: String) -> Int {
@@ -342,17 +386,20 @@ class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         }
         
         let prefix = "\(turnCode);\(distStr);"
-        let maxStreetLength = max(1, 20 - prefix.count)
+        let maxStreetLength = max(1, 18 - prefix.count)
         let strippedStreet = bleSafeText(nextStreet, maxLength: maxStreetLength)
+        let nextTurn = bleSafeText(followingInstruction, maxLength: 18)
         
-        let message = "\(prefix)\(strippedStreet.isEmpty ? "-" : strippedStreet)"
+        let message = "\(prefix)\(strippedStreet.isEmpty ? "-" : strippedStreet);\(turnProgressPercent);\(navigationStatus);\(nextTurn.isEmpty ? "-" : nextTurn)"
         bleManager?.sendData(message)
     }
     
     private func sendArrivedUpdate() {
+        navigationStatus = 3
+        turnProgressPercent = 100
         let prefix = "7;Da den;"
         let place = bleSafeText(destinationName, maxLength: max(1, 20 - prefix.count))
-        bleManager?.sendData("\(prefix)\(place.isEmpty ? "-" : place)")
+        bleManager?.sendData("\(prefix)\(place.isEmpty ? "-" : place);100;3;-")
     }
 
     private func bleSafeText(_ text: String, maxLength: Int) -> String {
@@ -373,6 +420,50 @@ class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
                 self.currentStepIndex = 0
                 self.errorMessage = nil
                 self.processCurrentStep()
+            }
+        }
+    }
+    
+    private func updateTurnProgress(distance: Double, step: Step?) {
+        let baseDistance = Double(step?.distanceMeters ?? 0)
+        guard baseDistance > 1 else {
+            turnProgressPercent = distance < 30 ? 90 : 0
+            navigationStatus = distance < 80 ? 1 : 0
+            return
+        }
+        let raw = 100.0 - (distance / baseDistance * 100.0)
+        turnProgressPercent = max(0, min(100, Int(raw.rounded())))
+        navigationStatus = distance <= 80.0 ? 1 : 0
+    }
+    
+    func runDemoRoute() async {
+        demoTask?.cancel()
+        isNavigating = true
+        errorMessage = nil
+        let demoFrames: [(Int, String, String, Int, Int, String)] = [
+            (0, "450m", "Nguyen Trai", 10, 0, "Re phai Le Loi"),
+            (2, "120m", "Le Loi", 70, 1, "Di thang 500m"),
+            (1, "35m", "Pasteur", 92, 1, "Vong xuyen"),
+            (6, "80m", "Vong xoay", 84, 1, "Re phai"),
+            (7, "Da den", "Diem den", 100, 3, "-")
+        ]
+        demoTask = Task { [weak self] in
+            for frame in demoFrames {
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    self?.currentInstruction = frame.2
+                    self?.nextStreet = frame.2
+                    self?.followingInstruction = frame.5 == "-" ? "" : frame.5
+                    self?.distanceToNextTurn = Double(frame.1.replacingOccurrences(of: "m", with: "")) ?? 0
+                    self?.turnProgressPercent = frame.3
+                    self?.navigationStatus = frame.4
+                    self?.bleManager?.sendData("\(frame.0);\(frame.1);\(frame.2);\(frame.3);\(frame.4);\(frame.5)")
+                }
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+            }
+            await MainActor.run {
+                self?.isNavigating = false
+                self?.navigationStatus = 0
             }
         }
     }
@@ -437,9 +528,12 @@ class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
                             lastRecalculateTime = now
                             offRouteCount = 0
                             
-                            self.currentInstruction = "Di sai duong, dang tinh lai..."
+                            self.currentInstruction = "Đi sai đường, đang tính lại..."
                             self.nextStreet = "..."
-                            self.bleManager?.sendData("0;--;Dang tinh lai...")
+                            self.followingInstruction = ""
+                            self.navigationStatus = 2
+                            self.turnProgressPercent = 0
+                            self.bleManager?.sendData("0;--;Dang tinh lai;0;2;-")
                             
                             recalculateRoute()
                             return
@@ -462,6 +556,7 @@ class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
                 let distance = userLoc.distance(from: turnLocation)
                 
                 self.distanceToNextTurn = distance
+                self.updateTurnProgress(distance: distance, step: nextStep)
                 
                 if distance < 15.0 {
                     self.currentStepIndex = nextStepIndex
@@ -478,6 +573,7 @@ class NavigationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
                 let distance = userLoc.distance(from: destLocation)
                 
                 self.distanceToNextTurn = distance
+                self.updateTurnProgress(distance: distance, step: steps.last)
                 
                 if distance < 20.0 {
                     self.stopNavigation()
