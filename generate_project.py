@@ -27,7 +27,7 @@ struct MapNavigationAppApp: App {
     print("Wrote MapNavigationAppApp.swift")
 
 def write_ble_manager():
-    content = """import Foundation
+    content = r"""import Foundation
 import CoreBluetooth
 
 class BLEManager: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeripheralDelegate {
@@ -1468,7 +1468,10 @@ def write_xcodeproj():
 		4A4A00C01A1A1A1A00000018 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "";
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = MapNavigationApp/Info.plist;
@@ -1488,7 +1491,10 @@ def write_xcodeproj():
 		4A4A00C01A1A1A1A00000019 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "";
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = MapNavigationApp/Info.plist;

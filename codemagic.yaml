@@ -28,7 +28,9 @@ workflows:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            PROVISIONING_PROFILE_REQUIRED=NO
+            PROVISIONING_PROFILE_REQUIRED=NO \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            DEVELOPMENT_TEAM=""
       - name: Package into Unsigned IPA
         script: |
           mkdir -p Payload
